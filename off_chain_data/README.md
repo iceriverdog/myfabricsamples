@@ -1,31 +1,27 @@
 # Off Chain data
 
-This sample demonstrates how you can use [Peer channel-based event services](https://hyperledger-fabric.readthedocs.io/en/release-2.0/peer_event_services.html)
+This sample demonstrates how you can use [Peer channel-based event services](https://hyperledger-fabric.readthedocs.io/en/release-1.4/peer_event_services.html)
 to replicate the data on your blockchain network to an off chain database.
 Using an off chain database allows you to analyze the data from your network or
 build a dashboard without degrading the performance of your application.
 
-This sample uses the [Fabric network event listener](https://hyperledger.github.io/fabric-sdk-node/release-1.4/tutorial-channel-events.html) from the Node.JS Fabric SDK to write data to local instance of
+This sample uses the [Fabric network event listener](https://fabric-sdk-node.github.io/release-1.4/tutorial-listening-to-events.html) from the Node.JS Fabric SDK to write data to local instance of
 CouchDB.
 
 ## Getting started
 
 This sample uses Node Fabric SDK application code similar to the `fabcar` sample
-to connect to a running instance of the Fabric test network. Make sure that you
-are running the following commands from the `off_chain_data` directory.
+to connect to a network created using the `first-network` sample.
 
-### Starting the Network
+### Install dependencies
 
-Use the following command to start the sample network:
+You need to install Node.js version 8.9.x to use the sample application code.
+Execute the following commands to install the required dependencies:
 
 ```
-./startFabric.sh
+cd fabric-samples/off_chain_data
+npm install
 ```
-
-This command will deploy an instance of the Fabric test network. The network
-consists of an ordering service, two peer organizations with one peers each, and
-a CA for each org. The command also creates a channel named `mychannel`. The
-marbles chaincode will be installed on both peers and deployed to the channel.
 
 ### Configuration
 
@@ -55,24 +51,29 @@ If you set the "use_couchdb" option to true in `config.json`, you can run the
 following command start a local instance of CouchDB using docker:
 
 ```
-docker run --publish 5990:5984 --detach --name offchaindb couchdb
+docker run --publish 5990:5984 --detach --name offchaindb hyperledger/fabric-couchdb
 docker start offchaindb
 ```
 
-### Install dependencies
+### Starting the Network
 
-You need to install Node.js version 8.9.x to use the sample application code.
-Execute the following commands to install the required dependencies:
+Use the following command to start the sample network:
 
 ```
-npm install
+./startFabric.sh
 ```
+
+This command uses the `first-network` sample to deploy a fabric network with an
+ordering service, two peer organizations with two peers each, and a channel
+named `mychannel`. The marbles chaincode will be installed on all four peers and
+instantiated on the channel.
 
 ### Starting the Channel Event Listener
 
-After we have installed the application dependencies, we can use the Node.js SDK
-to create the identity our listener application will use to interact with the
-network. Run the following command to enroll the admin user:
+Once the network has started, we can use the Node.js SDK to create the user and
+certificates our listener application will use to interact with the network. Run
+the following command to enroll the admin user:
+
 ```
 node enrollAdmin.js
 ```
@@ -91,18 +92,13 @@ node blockEventListener.js
 ```
 
 If the command is successful, you should see the output of the listener reading
-the configuration blocks of `mychannel` in addition to the blocks that recorded
-the approval and commitment of the marbles chaincode definition.
+the first 4 configuration blocks of `mychannel`:
 
 ```
-Listening for block events, nextblock: 0
 Added block 0 to ProcessingMap
 Added block 1 to ProcessingMap
 Added block 2 to ProcessingMap
 Added block 3 to ProcessingMap
-Added block 4 to ProcessingMap
-Added block 5 to ProcessingMap
-Added block 6 to ProcessingMap
 ------------------------------------------------
 Block Number: 0
 ------------------------------------------------
@@ -111,33 +107,10 @@ Block Number: 1
 Block Number: 2
 ------------------------------------------------
 Block Number: 3
-Block Timestamp: 2019-08-08T19:47:56.148Z
-ChaincodeID: _lifecycle
-[]
+Added block 4 to ProcessingMap
 ------------------------------------------------
 Block Number: 4
-Block Timestamp: 2019-08-08T19:48:00.234Z
-ChaincodeID: _lifecycle
-[]
-------------------------------------------------
-Block Number: 5
-Block Timestamp: 2019-08-08T19:48:14.092Z
-ChaincodeID: _lifecycle
-[ { key: 'namespaces/fields/marbles/Collections',
-    is_delete: false,
-    value: '\u0012\u0000' },
-  { key: 'namespaces/fields/marbles/EndorsementInfo',
-    is_delete: false,
-    value: '\u0012\r\n\u00031.0\u0010\u0001\u001a\u0004escc' },
-  { key: 'namespaces/fields/marbles/Sequence',
-    is_delete: false,
-    value: '\b\u0001' },
-  { key: 'namespaces/fields/marbles/ValidationInfo',
-    is_delete: false,
-    value: '\u00122\n\u0004vscc\u0012*\n(\u0012\f\u0012\n\b\u0002\u0012\u0002\b\u0000\u0012\u0002\b\u0001\u001a\u000b\u0012\t\n\u0007Org1MSP\u001a\u000b\u0012\t\n\u0007Org2MSP' },
-  { key: 'namespaces/metadata/marbles',
-    is_delete: false,
-    value: '\n\u0013ChaincodeDefinition\u0012\bSequence\u0012\u000fEndorsementInfo\u0012\u000eValidationInfo\u0012\u000bCollections' } ]
+
 ```
 
 `blockEventListener.js` creates a listener named "offchain-listener" on the
@@ -151,9 +124,9 @@ started.
 
 `BlockProcessing.js` runs as a daemon and pulls each block in order from the
 BlockMap. It then uses the read-write set of that block to extract the latest
-key value data and store it in the database. The configuration blocks of
-mychannel did not any data to the database because the blocks did not contain a
-read-write set.
+key value data and store it in the database. The first four configuration blocks
+of `mychannel` did not any data to the database because the blocks did not
+contain a read-write set.
 
 The channel event listener also writes metadata from each block to a log file
 defined as channelid_chaincodeid.log. In this example, events will be written to
@@ -357,16 +330,18 @@ database:
 ## Clean up
 
 If you are finished using the sample application, you can bring down the network
-and any accompanying artifacts by running the following command:
-```
-./network-clean.sh
-```
+and any accompanying artifacts.
 
-Running the script will complete the following actions:
-
-* Bring down the Fabric test network.
-* Takes down the local CouchDB database.
+* Change to `fabric-samples/first-network` directory.
+* To stop the network, run `./byfn.sh down`.
+* Change back to `fabric-samples/off_chain_data` directory.
 * Remove the certificates you generated by deleting the `wallet` folder.
 * Delete `nextblock.txt` so you can start with the first block next time you
-  operate the listener.
-* Removes `addMarbles.json`.
+  operate the listener. You can also reset the `nextMarbleNumber` in
+  `addMarbles.json` to 100.
+* To take down the local CouchDB database, first stop and then remove the
+  docker container:
+  ```
+  docker stop offchaindb
+  docker rm offchaindb
+  ```

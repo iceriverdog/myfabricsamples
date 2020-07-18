@@ -95,7 +95,7 @@ public final class FabCar implements ContractInterface {
         };
 
         for (int i = 0; i < carData.length; i++) {
-            String key = String.format("CAR%d", i);
+            String key = String.format("CAR%03d", i);
 
             Car car = genson.deserialize(carData[i], Car.class);
             String carState = genson.serialize(car);
@@ -140,21 +140,21 @@ public final class FabCar implements ContractInterface {
      * @return array of Cars found on the ledger
      */
     @Transaction()
-    public CarQueryResult[] queryAllCars(final Context ctx) {
+    public Car[] queryAllCars(final Context ctx) {
         ChaincodeStub stub = ctx.getStub();
 
         final String startKey = "CAR0";
         final String endKey = "CAR999";
-        List<CarQueryResult> queryResults = new ArrayList<CarQueryResult>();
+        List<Car> cars = new ArrayList<Car>();
 
         QueryResultsIterator<KeyValue> results = stub.getStateByRange(startKey, endKey);
 
         for (KeyValue result: results) {
             Car car = genson.deserialize(result.getStringValue(), Car.class);
-            queryResults.add(new CarQueryResult(result.getKey(), car));
+            cars.add(car);
         }
 
-        CarQueryResult[] response = queryResults.toArray(new CarQueryResult[queryResults.size()]);
+        Car[] response = cars.toArray(new Car[cars.size()]);
 
         return response;
     }
