@@ -455,6 +455,8 @@ func (t *SimpleChaincode) transferMarblesBasedOnColor(stub shim.ChaincodeStubInt
 
 	// Query the color~name index by color
 	// This will execute a key range query on all keys starting with 'color'
+	// 根据局部的 复合键 返回所有的匹配的键值, 比如 1 ， 12,123,132 都返回，
+	// "colorNameIndexKey, err := stub.CreateCompositeKey(indexName, []string{marble.Color, marble.Name})"
 	coloredMarbleResultsIterator, err := stub.GetStateByPartialCompositeKey("color~name", []string{color})
 	if err != nil {
 		return shim.Error(err.Error())
